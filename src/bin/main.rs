@@ -1,3 +1,10 @@
+use std::env;
+
 fn main() {
-    println!("{:?}", deckware::extract_value("13,20,3,4,5,6,7,8,9,42,11,12,1,14,15,16,17,18,19,2,21,22,23,40,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,24,41,10,43,50,45,46,47,48,49,44,51,52"));
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 2 {
+        panic!("Invalid arguments!\n Usage: ./deckware */List of card numbers separeted by comma and without whitespaces/*");
+    }
+    let result = deckware::extract_value(&args[1]).unwrap();
+    println!("{:?}", result);
 }
