@@ -3,6 +3,8 @@ pub mod lehmer;
 use std::error::Error;
 
 const DECK_LENGTH: usize = 52;
+// 2^225-1
+const MAX_VALUE: &str = "53919893334301279589334030174039261347274288845081144962207220498431";
 
 fn has_unique_elements(slice: &[u8]) -> bool {
     !(1..slice.len()).any(|i| slice[i..].contains(&slice[i - 1]))
@@ -10,6 +12,26 @@ fn has_unique_elements(slice: &[u8]) -> bool {
 
 fn any_greater_than(slice: &[u8], max: u8) -> bool {
     slice.iter().any(|&i| i > max)
+}
+
+// we need to discard anything larger than MAX_VALUE
+fn greater_than_max(value: &str) -> bool {
+    match value.len() < MAX_VALUE.len() {
+        true => return false,
+        false => {
+            if value.len() > MAX_VALUE.len() {
+                return true;
+            }
+            for (d1, d2) in value.chars().zip(MAX_VALUE.chars()) {
+                if d1 > d2 {
+                    return true;
+                } else if d1 < d2 {
+                    return false;
+                }
+            }
+            return false;
+        }
+    }
 }
 
 fn parse_deck(deck: &str) -> Result<Vec<u8>, Box<dyn Error>> {
@@ -40,7 +62,11 @@ fn parse_deck(deck: &str) -> Result<Vec<u8>, Box<dyn Error>> {
 
 pub fn extract_value(deck: &str) -> Result<String, Box<dyn Error>> {
     let cards: Vec<u8> = parse_deck(deck)?;
-    Ok(lehmer::compute(&cards))
+    let num = lehmer::compute(&cards);
+    if greater_than_max(&num) {
+        return Err("Please provide another shuffle, this shuffle is considered insecure: because the permutation space is larger than 225 bits but not quite 226 bits, we can't use the full space, or we'll end up with a biased extractor".into());
+    }
+    Ok(num)
 }
 
 #[cfg(test)]
@@ -68,5 +94,29 @@ mod tests {
         assert_eq!(false, has_unique_elements(&[1, 2, 3, 3]));
         assert_eq!(false, has_unique_elements(&[1, 2, 3, 3]));
         assert_eq!(true, has_unique_elements(&[2, 3, 1]));
+    }
+
+    #[test]
+    fn greater_than_max_test() {
+        assert_eq!(false, greater_than_max("1"));
+        assert_eq!(false, greater_than_max("123456789"));
+        assert_eq!(
+            false,
+            greater_than_max(
+                "11111113334301279589334030174039261347274288845081144962207220498431"
+            )
+        );
+        assert_eq!(
+            false,
+            greater_than_max(
+                "53919893334301279589334030174039261347274288845081144962207220498431"
+            )
+        );
+        assert_eq!(
+            true,
+            greater_than_max(
+                "53919893334301279589334030174039261347274288845081144962207220999991"
+            )
+        );
     }
 }
